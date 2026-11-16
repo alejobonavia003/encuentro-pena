@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-database.mjs"
+    "test": "node scripts/test-phone.mjs && node scripts/test-links.mjs && node scripts/test-database.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.119.0",

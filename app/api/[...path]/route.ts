@@ -1,3 +1,4 @@
+import {normalizeArgentineMobile} from '../../../lib/phone';
 import {createClient} from '@supabase/supabase-js';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -17,6 +18,7 @@ async function handle(req:Request){
  if(bearer){if(!bearer.startsWith('Bearer '))return reply({error:'Sesión inválida'},401);const {error}=await sb.auth.getUser(bearer.slice(7));if(error)return reply({error:'Tu sesión venció. Volvé a ingresar con Google'},401)}
  let payload:Record<string,unknown>=Object.fromEntries(url.searchParams);
  if(req.method==='POST'){const raw=await req.text();if(raw.length>8192)return reply({error:'Solicitud demasiado grande'},413);try{payload=JSON.parse(raw)}catch{return reply({error:'Solicitud inválida'},400)}if(!payload||Array.isArray(payload)||typeof payload!=='object')return reply({error:'Solicitud inválida'},400)}
+ if(req.method==='POST'&&(path==='tickets'||path==='band')){try{payload.phone=normalizeArgentineMobile(payload.phone)}catch(e){return reply({error:(e as Error).message},400)}}
  const action=path==='bands'?(req.method==='GET'?'bands_list':'bands_create'):path;
  const {data,error}=await sb.rpc('pena_api',{a:action,p:payload});
  if(error){console.error('Supabase RPC',error.code,error.message);return reply({error:'No pudimos procesar la operación. Actualizá e intentá de nuevo.'},500)}

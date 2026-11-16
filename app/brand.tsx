@@ -1,0 +1,2 @@
+/** Real supplied identity, with intrinsic dimensions to avoid layout shift. */
+export function Brand(){return <a className="brand" href="/" aria-label="Encuentro Multiespacio, inicio"><img className="brand-horizontal" src="/brand/encuentro-horizontal.webp" width="1000" height="172" alt="Encuentro"/><img className="brand-symbol" src="/brand/encuentro-simbolo.webp" width="360" height="360" alt="Encuentro"/></a>}
