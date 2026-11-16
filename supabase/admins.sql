@@ -1,0 +1,4 @@
+-- Los administradores reales se configuran privadamente desde el SQL Editor.
+-- No guardar correos reales de producción en este repositorio público.
+-- Ejemplo (reemplazar y ejecutar sólo en el proyecto correcto):
+-- insert into pena_private.admins(email) values ('TU_CORREO_ADMIN_VERIFICADO') on conflict do nothing;
