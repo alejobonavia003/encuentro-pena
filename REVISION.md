@@ -132,3 +132,9 @@ El advisor de seguridad agrega únicamente la información esperada de RLS sin p
 El encabezado muestra primero El Anidal, Encuentro y El Alborada, con el icono real de El Alborada. El Anidal aún usa su marca temporal y nido de ramas hasta recibir el logo definitivo.
 
 Recuperación de esta publicación: si falla el build remoto, conservar el deployment anterior `dpl_841ocgGBG5WPaGWeGmmSUnN7Eq7M`. Si aparece un problema de frontend, hacer rollback a ese mismo deployment y comprobar `/api/init`, compra y entradas existentes; la compatibilidad de la API antigua con esta migración ya fue verificada. Mantener `logo_path`, sponsors, bucket y objetos; el frontend anterior no los gestiona pero no necesita borrarlos. Para un error SQL, preparar una migración correctiva transaccional usando las definiciones respaldadas; no restaurar todo el JSON sobre ventas posteriores ni ejecutar schema.sql de nuevo.
+
+## Publicación rápida: solistas
+
+Se agrega `solo` como tercer tipo, junto con `band` y `dance`; selector de alta, tarjetas y página pública muestran Solista. Migración `20261117011551_solo_participants.sql` aplicada antes de publicar. Amplía la restricción y validación de creación; mantiene el dispatcher y permisos, sin reescribir filas. Respaldo privado previo en `/home/mrphilips/Encuentro/private-backups/encuentro-pena-solistas-20261116/`. Se conservaron los 4 participantes, 8 entradas, sponsor y demás datos existentes.
+
+75 pruebas locales correctas: incluye alta autorizada, invitación, venta, 20 cupos, tramos de precio, confirmación y puerta para solistas. Build Webpack y TypeScript correctos. No se crearon datos ficticios en producción. Para recuperar el frontend anterior, volver a `dpl_7X68TzFzfLWvNWLMSiXCAYh4n1iX` conservando la base ampliada; esa versión mostrará los nuevos solistas como Banda, pero sus IDs y operaciones se mantienen. Preferir corregir el frontend en lugar de revertir datos.
