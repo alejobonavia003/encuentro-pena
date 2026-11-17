@@ -1,2 +1,4 @@
-/** Real supplied identity, with intrinsic dimensions to avoid layout shift. */
-export function Brand(){return <a className="brand" href="/" aria-label="Encuentro Multiespacio, inicio"><img className="brand-horizontal" src="/brand/encuentro-horizontal.webp" width="1000" height="172" alt="Encuentro"/><img className="brand-symbol" src="/brand/encuentro-simbolo.webp" width="360" height="360" alt="Encuentro"/></a>}
+export function Brand(){return <a className="brand brand-organizers" href="/" aria-label="El Anidal, Encuentro y El Alborada · Inicio"><span className="header-identity header-anidal"><b>EL ANIDAL</b><img src="/brand/el-anidal.svg" width="180" height="28" alt=""/></span><span className="header-identity header-encuentro"><img src="/brand/encuentro-blanco.webp" width="180" height="60" alt="Encuentro"/></span><span className="header-identity header-alborada"><img src="/brand/el-alborada.webp" width="90" height="90" alt="El Alborada"/></span></a>}
+
+
+export function EditionHeader(){return <section className="edition-header"><span className="eyebrow">LA PEÑA BY ENCUENTRO · JUNTO A EL ALBORADA</span><h1 className="nest-title">EL ANIDAL</h1><img className="edition-logo" src="/brand/el-anidal.svg" alt="El Anidal" width="520" height="180"/><p className="edition-caption">Música, danza y un lugar para encontrarnos.</p></section>}

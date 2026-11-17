@@ -100,3 +100,35 @@ Las dos variables públicas existentes están configuradas en producción; no se
 3. Mantener las nuevas columnas y los datos. No ejecutar `schema.sql`, eliminar tablas, borrar participantes o restaurar globalmente el JSON sobre ventas nuevas.
 4. Si el problema está en el dispatcher, preparar una migración correctiva transaccional a partir de `previous-functions.sql`, evaluar antes participantes `dance` creados desde la publicación y conservar `kind`, `expired` y todas las ventas posteriores. Restaurar el dispatcher antiguo oculta la distinción de tipos; preferir corregir la función nueva.
 5. El respaldo es selectivo de los datos y definiciones afectados, no un backup completo de Auth ni una restauración PITR. Usarlo para comparación y recuperación selectiva revisada.
+
+## Segunda revisión: El Anidal, sponsors y logos (trabajo local)
+
+La publicación anterior terminó correctamente en el deployment `dpl_841ocgGBG5WPaGWeGmmSUnN7Eq7M`, commit `8e628e3`, y Vercel quedó conectado a `alejobonavia003/encuentro-pena`, rama `main`. La nota anterior sobre falta de conexión describe el estado inicial, no el actual.
+
+Esta nueva revisión agrega identidad oscura de La Peña by Encuentro junto a El Alborada, edición El Anidal; tipografía local Amatic SC con licencia OFL; sponsors gestionables por administración; carga de logos propios por representantes; QR de venta con corrección H y marca central pequeña; logos y sponsors en la imagen de entrada. El Anidal conserva un espacio reemplazable en `public/brand/`. El icono real de El Alborada ya está integrado como `public/brand/el-alborada.webp`. Los originales suministrados se conservan.
+
+Migración nueva preparada: `supabase/migrations/20261116235328_sponsors_participant_logos.sql`. Agrega `bands.logo_path`, `public.sponsors`, bucket público exclusivo `pena-logos` (WebP, 1 MB) y política de carga con cuenta verificada, sesión activa y propiedad del participante o rol administrador. La app convierte PNG/JPG/WebP de hasta 5 MB a WebP antes de subir; se agrega un fondo que preserve la visibilidad de logos blancos. No se requieren variables nuevas ni service_role. No se agregan políticas de borrado ni sobrescritura; cada reemplazo usa una ruta nueva y las imágenes anteriores se conservan.
+
+La migración no fue aplicada a producción y estos cambios no se publicaron todavía. Para publicar: respaldar los datos y definiciones actuales, aplicar solamente esta migración después de la anterior, verificar permisos e integridad, recién entonces publicar el frontend. No recrear el esquema ni el proyecto. Para una instalación vacía, ejecutar schema.sql y ambas migraciones en orden.
+
+Las pruebas SQL incluyen una réplica local de los metadatos de Storage para verificar la política real: anónimo, identidad ajena y representante de otra banda no pueden cargar; representante propio y administrador sí; sobrescritura y SVG bloqueados; sponsors ocultos fuera de publicidad pública; rutas de objetos ajenos o inexistentes rechazadas; sesiones revocadas sin permiso de carga. Son pruebas locales, no una comprobación del servicio Storage remoto.
+
+Se revisó en navegador una página temporal con datos ficticios: identidad, compra, sponsors, formulario de carga y generación de entrada. Se retiraron página, endpoint y objetos de prueba al terminar. Un decodificador independiente (zbar) leyó el QR de venta con logo y el QR de la entrada con los destinos esperados. Las muestras quedaron fuera de Git, en `/tmp/anidal-review/`. Los recorridos autenticados y la carga real contra Storage quedan pendientes de un entorno de prueba con cuentas autorizadas.
+
+Manual solicitado: `docs/ADMINISTRAR-PARTICIPANTES-SUPABASE.md`. Incluye baja reversible que conserva entradas y revoca invitación/asignación, reactivación y borrado definitivo condicionado a no tener entradas; las consultas se ensayan con rollback.
+
+Ajuste previo a publicación: nido de El Anidal con más ramas, compartido por web y PNG de entrada; nombre corregido a El Alborada e icono suministrado integrado sin recortes. Los originales se conservan.
+
+## Publicación de El Anidal, sponsors y logos — 16/11/2026
+
+La migración `sponsors_participant_logos` se aplicó correctamente en Supabase antes del push. Respaldo privado actualizado fuera del repositorio: `/home/mrphilips/Encuentro/private-backups/encuentro-pena-sponsors-20261116/`, con datos y metadatos anteriores en `before.json` y funciones en `previous-functions.sql`. No se cambiaron variables, DNS, dominios, OAuth ni protecciones.
+
+Se compararon los 3 participantes, 5 entradas, 2 accesos de puerta, 2 administradores, configuración y 16 registros de auditoría contra el respaldo: todos intactos (sólo se agregó `logo_path=null` a participantes). Los IDs, invitaciones, confirmaciones, ingresos, permisos existentes, políticas e índices se conservaron. Se verificó el bucket público `pena-logos`, límite de 1 MB, sólo WebP y carga condicionada a sesión y permisos. No se crearon sponsors, archivos de prueba ni ventas ficticias en producción.
+
+La API de la versión todavía publicada se contrastó antes/después: init, compra de los tres participantes y consulta de las cinco entradas devuelven lo mismo, salvo los campos nuevos compatibles. Pasaron los 69 controles SQL/Storage locales, los casos de teléfonos/enlaces, TypeScript y build Webpack. No hay rama remota de prueba. Los recorridos autenticados de carga de logos y sponsors requieren revisión con cuentas reales.
+
+El advisor de seguridad agrega únicamente la información esperada de RLS sin políticas directas en `sponsors`: la tabla se opera por RPC autorizada. Sigue el aviso previo de protección de contraseñas filtradas desactivada; no se alteró configuración Auth.
+
+El encabezado muestra primero El Anidal, Encuentro y El Alborada, con el icono real de El Alborada. El Anidal aún usa su marca temporal y nido de ramas hasta recibir el logo definitivo.
+
+Recuperación de esta publicación: si falla el build remoto, conservar el deployment anterior `dpl_841ocgGBG5WPaGWeGmmSUnN7Eq7M`. Si aparece un problema de frontend, hacer rollback a ese mismo deployment y comprobar `/api/init`, compra y entradas existentes; la compatibilidad de la API antigua con esta migración ya fue verificada. Mantener `logo_path`, sponsors, bucket y objetos; el frontend anterior no los gestiona pero no necesita borrarlos. Para un error SQL, preparar una migración correctiva transaccional usando las definiciones respaldadas; no restaurar todo el JSON sobre ventas posteriores ni ejecutar schema.sql de nuevo.

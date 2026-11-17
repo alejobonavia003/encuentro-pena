@@ -17,6 +17,17 @@ assert.equal((await db.query("select kind from public.bands where id='legacy-ban
 assert.deepEqual((await db.query("select to_jsonb(b)-'kind' value from public.bands b where id='legacy-band'")).rows[0].value,beforeBand);
 assert.deepEqual((await db.query("select to_jsonb(t)-'expired' value from public.tickets t where id='legacy-ticket'")).rows[0].value,beforeTicket);
 console.log('PASS Migration preserves existing IDs, invitations, payment profiles and confirmed tickets');
+// Storage metadata replica: exercise the real migration policies without touching remote files.
+await db.exec(`create schema storage;
+create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,unique(bucket_id,name));
+alter table storage.objects enable row level security;
+grant usage on schema storage to anon,authenticated;grant insert on storage.objects to anon,authenticated;`);
+const legacyBeforeMedia=(await db.query("select to_jsonb(b) value from public.bands b where id='legacy-band'")).rows[0].value;
+await db.exec(readFileSync('supabase/migrations/20261116235328_sponsors_participant_logos.sql','utf8'));
+assert.deepEqual((await db.query("select to_jsonb(b)-'logo_path' value from public.bands b where id='legacy-band'")).rows[0].value,legacyBeforeMedia);
+assert.deepEqual((await db.query("select to_jsonb(t)-'expired' value from public.tickets t where id='legacy-ticket'")).rows[0].value,beforeTicket);
+console.log('PASS Media migration preserves existing participants and tickets');
 await db.exec("delete from public.tickets where id='legacy-ticket'");
 await db.exec("delete from public.bands where id='legacy-band'");
 const phoneCases=JSON.parse(readFileSync('scripts/phone-cases.json','utf8'));
@@ -44,6 +55,30 @@ try{
  ok((await call('redeem',{invite:inv},'rep')).ok,'Representative claims private invitation');
  ok((await call('redeem',{invite:inv},'other')).status===403,'Private invitation cannot be claimed twice');
  ok((await call('manage',{band:b},'rep')).status===403,'Representative cannot read another band');
+ const sponsorId=crypto.randomUUID(),sponsorPath=`sponsors/${sponsorId}/${crypto.randomUUID()}.webp`;
+ async function upload(path,as=null){await db.exec('begin');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(as?{sub:ids[as],session_id:ids[as]}:{})]);await db.exec('set local role '+(as?'authenticated':'anon'));await db.query("insert into storage.objects(bucket_id,name) values('pena-logos',$1)",[path]);await db.exec('commit');return true}catch(e){await db.exec('rollback');return false}}
+ const bandLogo=`participants/${a}/${crypto.randomUUID()}.webp`;
+ ok(!await upload(bandLogo),'Anonymous upload blocked');
+ ok(!await upload(bandLogo,'other'),'Unrelated identity cannot upload participant logo');
+ ok(!await upload(`participants/${b}/${crypto.randomUUID()}.webp`,'rep'),'Representative cannot upload another participant logo');
+ ok(await upload(bandLogo,'rep'),'Representative uploads only own logo');
+ ok(!await upload(bandLogo,'rep'),'Images cannot be overwritten');
+ ok(!await upload(`participants/${a}/bad.svg`,'rep'),'SVG and arbitrary object paths rejected');
+ ok(!await upload(sponsorPath,'rep'),'Representatives cannot upload sponsors');
+ ok(await upload(sponsorPath,'admin'),'Administrator uploads sponsor logo');
+ ok((await call('band_logo',{id:a,logo_path:bandLogo},'rep')).ok,'Own participant logo saved');
+ ok((await call('band_logo',{id:b,logo_path:bandLogo},'rep')).status===403,'Logo save cannot cross participant ownership');
+ ok((await call('band_logo',{id:b,logo_path:bandLogo},'admin')).status===400,'Logo path cannot be reused for a different participant');
+ ok((await call('band_logo',{id:a,logo_path:`participants/${a}/${crypto.randomUUID()}.webp`},'rep')).status===400,'Missing storage image cannot be attached');
+ const sp={id:sponsorId,name:'Sponsor prueba',logo_path:sponsorPath,position:1,active:true};
+ ok((await call('sponsor',sp,'rep')).status===403,'Sponsor writes require administrator');
+ ok((await call('sponsor',sp,'admin')).ok,'Administrator creates sponsor');
+ ok((await call('init')).sponsors[0].name===sp.name,'Public init exposes active sponsors');
+ ok((await call('sponsors',{},'rep')).status===403,'Representative cannot list hidden sponsors');
+ ok((await call('sponsor',{...sp,active:false},'admin')).ok&&(await call('init')).sponsors.length===0,'Hidden sponsors disappear from public advertising');
+ ok((await call('sponsors',{},'admin')).sponsors.length===1,'Admin retains hidden sponsors');
+ await call('sponsor',sp,'admin');
+ ok((await call('public',{band:a})).band.logo_path===bandLogo,'Public purchase includes participant logo');
  const profile={id:a,representative:'Persona prueba',alias:'prueba.alias',holder:'Titular prueba',phone:'358 4928722'};
  ok((await call('band',profile,'rep')).ok,'Representative can configure own payment profile');
  const reserve=(bandId=a,key=crypto.randomUUID())=>({bandId,name:'Persona prueba',phone:'358 4928722',method:'transfer',requestKey:key,accept:true});
@@ -69,6 +104,7 @@ try{
  ok((await call('door',{},'admin')).tickets.length===1,'Only confirmed tickets appear at door');
  ok((await call('checkin',{id:ts[0]},'admin')).ok&&(await call('checkin',{id:ts[0]},'admin')).status===409,'Door accepts each ticket only once');
  ok((await call('cancel',{id:ts[0]},'admin')).status===409,'Entered tickets cannot be cancelled');
+ ok((await call('ticket',{id:ts[0]})).ticket.band_logo_path===bandLogo&&(await call('ticket',{id:ts[0]})).sponsors.length===1,'Ticket download includes own logo and active sponsors');
  ok((await call('ticket',{id:ts[0]})).ticket.confirmed_by===undefined,'Public ticket response excludes internal actor IDs');
  const exp=(await call('tickets',reserve(b))).id;
  await db.query('update public.tickets set expires=1 where id=$1',[exp]);
@@ -96,6 +132,7 @@ try{
  ok((await call('export',{},'admin')).tickets.some(t=>t.band_id===b&&t.status==='confirmed'),'Export includes confirmed dancer tickets');
  await db.query('delete from auth.sessions where user_id=$1',[ids.admin]);
  ok((await call('bands_create',{name:'No session'},'admin')).status===401,'Revoked session cannot perform privileged operations');
+ ok(!await upload(`sponsors/${sponsorId}/${crypto.randomUUID()}.webp`,'admin'),'Revoked session cannot upload logos');
  await db.exec('set role anon');let denied=false;try{await db.query('select * from public.tickets')}catch{denied=true}await db.exec('reset role');ok(denied,'Direct table access denied to public role');
  console.log(`${checks} checks passed`);
 }finally{await db.close()}

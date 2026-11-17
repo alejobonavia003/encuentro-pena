@@ -83,3 +83,12 @@ No se configuró ni verificó un respaldo automático de pago. Verificar las opc
 6. Sólo entonces abrir ventas del destino y repartir enlaces nuevos.
 
 No borrar D1 ni el sitio anterior antes de validar el corte y el respaldo.
+
+
+### Sponsors e identidad de El Anidal
+
+Esta revisión requiere aplicar en orden las migraciones de `supabase/migrations/` después del esquema base; en una base existente aplicar solamente las migraciones pendientes, nunca recrear `schema.sql`. Sponsors aparece en navegación de administración. Permite cargar/reemplazar un logo, ordenar y ocultar publicidad. Los representantes cargan su logo desde Mi participante. Las imágenes se guardan en el bucket público `pena-logos`, con escritura controlada por sesión y propietario. No hay variables nuevas.
+
+El logo del participante aparece en compra, entrada y QR público. La descarga de la entrada consulta estado, logo y sponsors actuales; las imágenes ya descargadas no se actualizan retroactivamente. Los sponsors ocultos se excluyen de nuevas descargas. Si falla una imagen opcional, la entrada conserva nombre, datos y QR.
+
+Ver [manual de baja y eliminación](docs/ADMINISTRAR-PARTICIPANTES-SUPABASE.md) y [reemplazo de logos principales](public/brand/LEEME-LOGOS.md). Amatic SC se aloja localmente; licencia en `public/fonts/AmaticSC-OFL.txt`.
