@@ -32,6 +32,7 @@ const beforeSoloMigration=(await db.query("select to_jsonb(b) value from public.
 await db.exec(readFileSync('supabase/migrations/20261117011551_solo_participants.sql','utf8'));
 assert.deepEqual((await db.query("select to_jsonb(b) value from public.bands b where id='legacy-band'")).rows[0].value,beforeSoloMigration);
 console.log('PASS Solo migration preserves existing participant rows');
+await db.exec(readFileSync('supabase/migrations/20261117163041_delete_participants.sql','utf8'));
 await db.exec("delete from public.tickets where id='legacy-ticket'");
 await db.exec("delete from public.bands where id='legacy-band'");
 const phoneCases=JSON.parse(readFileSync('scripts/phone-cases.json','utf8'));
@@ -145,6 +146,18 @@ try{
  const soloRows=(await call('manage',{band:solo},'rep')).tickets;
  ok(soloRows.filter(t=>t.slot<=10).length===10&&soloRows.reduce((v,t)=>v+(t.slot<=10?7000:10000),0)===170000,'Soloist preserves price tiers');
  ok((await call('confirm',{id:soloTickets[0],accept:true},'rep')).ok&&(await call('door',{},'admin')).tickets.some(t=>t.band==='Solista prueba'),'Soloist payment confirmation and door list work');
+ ok((await call('band_delete',{id:solo,accept:true})).status===401,'Anonymous cannot delete participants');
+ ok((await call('band_delete',{id:solo,accept:true},'rep')).status===403,'Representatives cannot delete participants');
+ ok((await call('band_delete',{id:solo,accept:true},'admin')).status===409,'Confirmed tickets prevent deletion');
+ const removable=(await call('bands_create',{name:'Eliminar prueba'},'admin')).id;
+ await call('band',{...profile,id:removable},'admin');
+ const removableBand=(await call('bands_list',{},'admin')).bands.find(x=>x.id===removable);
+ const removableTicket=(await call('tickets',reserve(removable))).id;
+ ok((await call('band_delete',{id:removable},'admin')).status===400,'Deletion requires explicit acceptance');
+ ok((await call('band_delete',{id:removable,accept:true},'admin')).ok,'Admin deletes participant with pending reservations');
+ ok((await call('ticket',{id:removableTicket})).status===404&&(await call('public',{band:removable})).status===404,'Deleted participant and reservations are unavailable');
+ ok((await call('redeem',{invite:removableBand.invite},'other')).status===404,'Deleted participant invitation is revoked');
+ ok(!(await call('bands_list',{},'admin')).bands.some(x=>x.id===removable),'Deleted participant disappears from admin list');
  await db.query('delete from auth.sessions where user_id=$1',[ids.admin]);
  ok((await call('bands_create',{name:'No session'},'admin')).status===401,'Revoked session cannot perform privileged operations');
  ok(!await upload(`sponsors/${sponsorId}/${crypto.randomUUID()}.webp`,'admin'),'Revoked session cannot upload logos');

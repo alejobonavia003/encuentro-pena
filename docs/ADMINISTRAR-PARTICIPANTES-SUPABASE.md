@@ -1,6 +1,10 @@
 # Dar de baja o eliminar participantes desde Supabase
 
-Proyecto existente: `encuentro-pena` (`utvcvzqxitopzxzhftuk`). No hace falta agregar una pantalla de eliminación a la app. Usar el SQL Editor con una cuenta administradora del proyecto, no las claves públicas de la aplicación.
+Proyecto existente: `encuentro-pena` (`utvcvzqxitopzxzhftuk`). La organización puede eliminar desde **Participantes → Eliminar participante**, después de aplicar la migración `20261117163041_delete_participants.sql`. La confirmación borra el participante y sus reservas pendientes o canceladas, e invalida su invitación y enlace de venta. Conserva la auditoría y los archivos de logos.
+
+La app bloquea la eliminación si tiene entradas confirmadas o personas que ya ingresaron. Las confirmaciones se deben revisar y anular previamente; un ingreso ya registrado impide eliminarlo. Los representantes y el personal de puerta no tienen permiso para eliminar participantes.
+
+Para una baja que conserve el historial, usar el SQL Editor con una cuenta administradora del proyecto según las instrucciones siguientes.
 
 ## 1. Identificar al participante y respaldar
 

@@ -45,3 +45,12 @@ th{background:#252d20;color:#d6cfb9;border-color:#454d39}td{border-color:#39422f
 .sidebar .brand.brand-organizers{gap:8px}.sidebar .brand-organizers>.header-identity{height:62px}.sidebar .brand-organizers>.header-identity+.header-identity{padding-left:8px}.sidebar .header-anidal b{font-size:24px;letter-spacing:1px}.sidebar .brand-organizers .header-alborada img{width:50px;height:50px}
 @media(max-width:760px){.public header .brand.brand-organizers{width:100%!important;flex-basis:100%;gap:12px}.brand-organizers>.header-identity{height:72px}.brand-organizers>.header-identity+.header-identity{padding-left:12px}.public header .header-anidal b{font-size:34px;letter-spacing:2px}.public header .brand-organizers .header-alborada img{width:65px;height:65px}.public header .brand-organizers .header-encuentro img{height:52px}.public header{gap:12px}.public-header-actions{margin-left:auto}.sidebar .brand.brand-organizers{max-width:400px!important;width:100%!important}.sidebar .header-anidal b{font-size:30px}.sidebar .brand-organizers .header-alborada img{width:58px;height:58px}}
 @media(max-width:380px){.public header .header-anidal b{font-size:28px}.public header .brand.brand-organizers{gap:8px}.public header .brand-organizers>.header-identity+.header-identity{padding-left:8px}}
+
+/* Numbered guidance shared by the participant and buyer journeys. */
+.step-label{display:inline-block;margin-bottom:10px;color:var(--orange);font-size:12px;font-weight:800;letter-spacing:.12em}
+.buyer-steps{list-style:none;padding:0;margin:24px 0;display:grid;gap:12px;text-align:left}
+.buyer-steps li{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:14px}
+.step-number{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;height:30px;border-radius:50%;background:#ede5da;color:#593a2b;font-weight:800}
+.buyer-steps .current{border-color:var(--orange);background:#c59d7512}
+.buyer-steps .current .step-number{background:var(--orange);color:#171b13}
+.quick-access>.panel{min-width:0}
