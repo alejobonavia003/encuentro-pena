@@ -1,11 +1,27 @@
 'use client';
-import {useState,useRef} from 'react';
+import {useState,useRef,type ComponentProps} from 'react';
 import {logoUrl,uploadLogo,type Sponsor} from '../lib/media';
+
+import {transparentSponsorLogo} from '../lib/sponsor-logo';
+
+function SponsorLogo({path,...props}:{path:string}&Omit<ComponentProps<'img'>,'src'>){
+  const src=logoUrl(path);
+  function clearBackground(img:HTMLImageElement){
+    if(img.src!==src)return;
+    try {
+      const cleaned=transparentSponsorLogo(img);
+      if(cleaned instanceof HTMLCanvasElement)img.src=cleaned.toDataURL();
+    } catch {
+      // Keep the original visible if pixel access is unavailable.
+    }
+  }
+  return <img {...props} key={path} src={src} crossOrigin="anonymous" onLoad={e=>clearBackground(e.currentTarget)}/>;
+}
 
 export function SponsorStrip({sponsors=[]}:{sponsors?:Sponsor[]}){
   const visible=sponsors.filter(s=>s.active);
   if(!visible.length)return null;
-  return <aside className="sponsors-strip" aria-label="Sponsors de la peña"><span className="eyebrow">NOS ACOMPAÑAN</span><h2>Quienes hacen nido.</h2><div className="sponsor-logos">{visible.map(s=><figure key={s.id}><img src={logoUrl(s.logo_path)} alt={s.name} width="160" height="80" loading="lazy"/><figcaption>{s.name}</figcaption></figure>)}</div></aside>;
+  return <aside className="sponsors-strip" aria-label="Sponsors de la peña"><span className="eyebrow">NOS ACOMPAÑAN</span><h2>Quienes hacen nido.</h2><div className="sponsor-logos">{visible.map(s=><figure key={s.id}><SponsorLogo path={s.logo_path} alt={s.name} width="160" height="80" loading="lazy"/><figcaption>{s.name}</figcaption></figure>)}</div></aside>;
 }
 
 type Api=(path:string,body?:unknown)=>Promise<any>;
@@ -22,7 +38,7 @@ export function SponsorManager({sponsors,onSave,busy}:{sponsors:Sponsor[];onSave
       setEditing(null);setFile(null);form.reset();
     }catch(e){setError((e as Error).message)}finally{lock.current=false;setSaving(false)}
   }
-  return <div className="sponsor-manager"><section className="panel"><span className="eyebrow">PUBLICIDAD · ORGANIZACIÓN</span><h2>{editing?'Editar sponsor':'Sumar un sponsor'}</h2><p>Su logo aparece en los paneles de representantes, la compra y al pie de cada entrada.</p><form key={editing?.id||'new'} onSubmit={submit}><label className="field"><span>Nombre del sponsor</span><input name="name" required maxLength={100} defaultValue={editing?.name}/></label><label className="field"><span>Logo</span><input key={editing?.id||'file'} type="file" accept="image/png,image/jpeg,image/webp" required={!editing} onChange={e=>setFile(e.target.files?.[0]||null)}/><small>PNG, JPG o WebP. Hasta 5 MB; se optimiza al subir. Un logo por sponsor.</small></label>{editing&&<img className="logo-preview" src={logoUrl(editing.logo_path)} alt={editing.name}/>}<label className="field"><span>Orden de aparición</span><input type="number" name="position" min={0} max={999} defaultValue={editing?.position??0} required/></label><label className="check"><input name="active" type="checkbox" defaultChecked={editing?.active??true}/> Mostrar sponsor</label>{error&&<p role="alert">{error}</p>}<div className="actions"><button disabled={busy||saving}>{saving?'Guardando…':'Guardar sponsor'}</button>{editing&&<button type="button" className="secondary" disabled={saving} onClick={()=>{setEditing(null);setFile(null);setError('')}}>Cancelar edición</button>}</div></form></section><section className="panel"><h2>Sponsors cargados</h2>{sponsors.length?sponsors.map(s=><article className="sponsor-row" key={s.id}><img src={logoUrl(s.logo_path)} alt="" width="100" height="64"/><div><h3>{s.name}</h3><small>{s.active?'Visible':'Oculto'} · Orden {s.position}</small></div><button className="secondary" disabled={saving||busy} onClick={()=>{setEditing(s);setFile(null);setError('')}}>Editar</button></article>):<p>Todavía no hay sponsors. Cargá el primero para que aparezca en la peña.</p>}</section></div>;
+  return <div className="sponsor-manager"><section className="panel"><span className="eyebrow">PUBLICIDAD · ORGANIZACIÓN</span><h2>{editing?'Editar sponsor':'Sumar un sponsor'}</h2><p>Su logo aparece en los paneles de representantes, la compra y al pie de cada entrada.</p><form key={editing?.id||'new'} onSubmit={submit}><label className="field"><span>Nombre del sponsor</span><input name="name" required maxLength={100} defaultValue={editing?.name}/></label><label className="field"><span>Logo</span><input key={editing?.id||'file'} type="file" accept="image/png,image/jpeg,image/webp" required={!editing} onChange={e=>setFile(e.target.files?.[0]||null)}/><small>Hasta 5 MB. Para conservar la transparencia original, usá un PNG o WebP sin fondo.</small></label>{editing&&<SponsorLogo className="logo-preview" path={editing.logo_path} alt={editing.name}/>}<label className="field"><span>Orden de aparición</span><input type="number" name="position" min={0} max={999} defaultValue={editing?.position??0} required/></label><label className="check"><input name="active" type="checkbox" defaultChecked={editing?.active??true}/> Mostrar sponsor</label>{error&&<p role="alert">{error}</p>}<div className="actions"><button disabled={busy||saving}>{saving?'Guardando…':'Guardar sponsor'}</button>{editing&&<button type="button" className="secondary" disabled={saving} onClick={()=>{setEditing(null);setFile(null);setError('')}}>Cancelar edición</button>}</div></form></section><section className="panel"><h2>Sponsors cargados</h2>{sponsors.length?sponsors.map(s=><article className="sponsor-row" key={s.id}><SponsorLogo path={s.logo_path} alt="" width="100" height="64"/><div><h3>{s.name}</h3><small>{s.active?'Visible':'Oculto'} · Orden {s.position}</small></div><button className="secondary" disabled={saving||busy} onClick={()=>{setEditing(s);setFile(null);setError('')}}>Editar</button></article>):<p>Todavía no hay sponsors. Cargá el primero para que aparezca en la peña.</p>}</section></div>;
 }
 
 export function ParticipantLogo({participant,onSave,busy}:{participant:{id:string;name:string;logo_path?:string};onSave:Api;busy:boolean}){

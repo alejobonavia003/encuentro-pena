@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import {drawContained,loadImage,logoUrl,type Sponsor} from './media';
+import {transparentSponsorLogo} from './sponsor-logo';
 
 type Ticket = {id:string; name:string; band:string; band_logo_path?:string|null; slot:number; amount?:number; is_general?:boolean; status:string; entered_at?:number|null};
 type Event = {title:string; date?:string; time?:string; location?:string};
@@ -28,7 +29,7 @@ export async function createTicketImage(ticket:Ticket,event:Event,url:string,spo
     lines.slice(0,max).forEach((l,i)=>text(l,x,y+i*(size+12),size,color,weight));
     return y+Math.min(lines.length,max)*(size+12);
   };
-  async function logo(src:string|undefined,x:number,y:number,w:number,h:number){if(!src)return false;try{drawContained(ctx!,await loadImage(src),x,y,w,h);return true}catch{return false}}
+  async function logo(src:string|undefined,x:number,y:number,w:number,h:number,sponsor=false){if(!src)return false;try{const img=await loadImage(src);drawContained(ctx!,sponsor?transparentSponsorLogo(img):img,x,y,w,h);return true}catch{return false}}
   ctx.fillStyle='#131611';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#1e241c';ctx.fillRect(32,32,936,canvas.height-64);
   ctx.strokeStyle='#9a7857';ctx.lineWidth=2;ctx.strokeRect(52,52,896,canvas.height-104);
@@ -57,8 +58,7 @@ export async function createTicketImage(ticket:Ticket,event:Event,url:string,spo
   if(rows){text('NOS ACOMPAÑAN',76,1960,21,'#bf9773','700');
     for(let i=0;i<visible.length;i++){
       const s=visible[i],x=76+(i%3)*286,y=1990+Math.floor(i/3)*185;
-      ctx.fillStyle='#f3eee5';ctx.fillRect(x,y,264,120);
-      await logo(logoUrl(s.logo_path),x+14,y+14,236,92);
+      await logo(logoUrl(s.logo_path),x+14,y+14,236,92,true);
       wrap(s.name,x,y+147,19,264,2,'#d7c9b7');
     }
   }
