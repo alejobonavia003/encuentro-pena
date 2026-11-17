@@ -7,7 +7,7 @@ async function handle(req:Request){
  try{
  const url=new URL(req.url),path=url.pathname.slice(5);
  const get=new Set(['init','public','ticket','bands','manage','door','export','sponsors']);
- const post=new Set(['tickets','redeem','bands','band','confirm','cancel','checkin','settings','staff','rotate','sponsor','band_logo','band_delete']);
+ const post=new Set(['tickets','redeem','bands','band','confirm','cancel','checkin','settings','staff','rotate','sponsor','band_logo','band_delete','event_create','general_settings']);
  if(!(req.method==='GET'?get:post).has(path))return reply({error:'Ruta no encontrada'},404);
  if(req.method==='POST'&&req.headers.get('origin')!==url.origin)return reply({error:'Origen no permitido'},403);
  if(Number(req.headers.get('content-length')||0)>8192)return reply({error:'Solicitud demasiado grande'},413);

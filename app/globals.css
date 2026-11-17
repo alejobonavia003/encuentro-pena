@@ -54,3 +54,5 @@ th{background:#252d20;color:#d6cfb9;border-color:#454d39}td{border-color:#39422f
 .buyer-steps .current{border-color:var(--orange);background:#c59d7512}
 .buyer-steps .current .step-number{background:var(--orange);color:#171b13}
 .quick-access>.panel{min-width:0}
+
+.event-catalog{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px;margin:32px 0}.event-catalog .panel{margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:12px}.event-catalog .panel h2{overflow-wrap:anywhere}.event-catalog .button{margin-top:auto}.event-switcher{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--line)}.event-switcher .field{flex:1;min-width:200px;margin:0}

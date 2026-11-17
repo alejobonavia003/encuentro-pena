@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import {drawContained,loadImage,logoUrl,type Sponsor} from './media';
 
-type Ticket = {id:string; name:string; band:string; band_logo_path?:string|null; slot:number; status:string; entered_at?:number|null};
+type Ticket = {id:string; name:string; band:string; band_logo_path?:string|null; slot:number; amount?:number; is_general?:boolean; status:string; entered_at?:number|null};
 type Event = {title:string; date?:string; time?:string; location?:string};
 
 /** QR only consults state. Downloading never confirms payment or registers entry. */
@@ -37,7 +37,7 @@ export async function createTicketImage(ticket:Ticket,event:Event,url:string,spo
   await logo('/brand/encuentro-blanco.webp',535,80,350,70);
   text('JUNTO A EL ALBORADA',480,195,18,'#d7c9b7');await logo('/brand/el-alborada.webp',790,160,95,95);
   // Organic crossed lines echo the edition's nest motif without reducing QR contrast.
-  text('EL ANIDAL',76,325,112,'#f2e8d7','700','Amatic SC');
+  wrap(event.title,76,290,48,848,2,'#f2e8d7','700');
   await logo('/brand/el-anidal.svg',76,337,848,63);
   text('LA PEÑA BY ENCUENTRO × EL ALBORADA',76,420,23,'#bf9773','700');
   let date='Fecha a confirmar';if(event.date){const d=new Date(event.date+'T12:00:00');if(!Number.isNaN(d.getTime()))date=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',timeZone:'America/Argentina/Cordoba'})}
@@ -45,10 +45,10 @@ export async function createTicketImage(ticket:Ticket,event:Event,url:string,spo
   wrap(event.location||'Lugar a confirmar',76,515,24,848,2);
   text(ticket.entered_at?'INGRESO YA REGISTRADO':'ENTRADA CONFIRMADA',76,640,25,ticket.entered_at?'#e5ae91':'#c5dcac','700');
   text('ASISTENTE',76,714,19,'#bf9773','700');wrap(ticket.name,76,769,38,848,3,'#f2e8d7','700');
-  text('ESTÁS APOYANDO A',76,1000,19,'#bf9773','700');
+  text(ticket.is_general?'ESTÁS APOYANDO AL EVENTO':'ESTÁS APOYANDO A',76,1000,19,'#bf9773','700');
   const hasLogo=await logo(logoUrl(ticket.band_logo_path),76,1030,185,160);
   wrap(ticket.band,hasLogo?300:76,1085,34,hasLogo?624:848,3);
-  text(new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(ticket.slot<=10?7000:10000),76,1300,48,'#f2e8d7','700');
+  text(new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(ticket.amount??(ticket.slot<=10?7000:10000)),76,1300,48,'#f2e8d7','700');
   const qr=document.createElement('canvas');await QRCode.toCanvas(qr,url,{width:320,margin:4,errorCorrectionLevel:'H'});ctx.drawImage(qr,604,1350,320,320);
   text('CÓDIGO DE ENTRADA',76,1400,19,'#bf9773','700');text(ticket.id.slice(0,8).toUpperCase(),76,1460,43,'#f2e8d7','700');text('1 persona · 1 ingreso',76,1520,25);
   text('Presentá tu nombre, participante y código en puerta.',76,1750,24);
