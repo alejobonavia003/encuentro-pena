@@ -7,9 +7,10 @@ async function handle(req:Request){
  try{
  const url=new URL(req.url),path=url.pathname.slice(5);
  const get=new Set(['init','public','ticket','bands','manage','door','export','sponsors']);
- const post=new Set(['tickets','redeem','bands','band','confirm','cancel','checkin','settings','staff','rotate','sponsor','band_logo','band_delete','event_create','general_settings']);
+ const post=new Set(['tickets','redeem','bands','band','confirm','cancel','checkin','settings','staff','rotate','sponsor','band_logo','band_delete','event_create','general_settings','panel','panel_guest','panel_payment','panel_confirm','panel_cancel']);
  if(!(req.method==='GET'?get:post).has(path))return reply({error:'Ruta no encontrada'},404);
- if(req.method==='POST'&&req.headers.get('origin')!==url.origin)return reply({error:'Origen no permitido'},403);
+ const requestOrigin=url.protocol+'//'+(req.headers.get('host')||url.host);
+ if(req.method==='POST'&&req.headers.get('origin')!==requestOrigin)return reply({error:'Origen no permitido'},403);
  if(Number(req.headers.get('content-length')||0)>8192)return reply({error:'Solicitud demasiado grande'},413);
  const sburl=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
  if(!sburl||!key)return reply({error:'Falta configurar el servicio'},503);
@@ -18,7 +19,7 @@ async function handle(req:Request){
  if(bearer){if(!bearer.startsWith('Bearer '))return reply({error:'Sesión inválida'},401);const {error}=await sb.auth.getUser(bearer.slice(7));if(error)return reply({error:'Tu sesión venció. Volvé a ingresar con Google'},401)}
  let payload:Record<string,unknown>=Object.fromEntries(url.searchParams);
  if(req.method==='POST'){const raw=await req.text();if(raw.length>8192)return reply({error:'Solicitud demasiado grande'},413);try{payload=JSON.parse(raw)}catch{return reply({error:'Solicitud inválida'},400)}if(!payload||Array.isArray(payload)||typeof payload!=='object')return reply({error:'Solicitud inválida'},400)}
- if(req.method==='POST'&&(path==='tickets'||path==='band')){try{payload.phone=normalizeArgentineMobile(payload.phone)}catch(e){return reply({error:(e as Error).message},400)}}
+ if(req.method==='POST'&&(path==='tickets'||path==='band'||path==='panel_payment')){try{payload.phone=normalizeArgentineMobile(payload.phone)}catch(e){return reply({error:(e as Error).message},400)}}
  const action=path==='bands'?(req.method==='GET'?'bands_list':'bands_create'):path;
  const {data,error}=await sb.rpc('pena_api',{a:action,p:payload});
  if(error){console.error('Supabase RPC',error.code,error.message);return reply({error:'No pudimos procesar la operación. Actualizá e intentá de nuevo.'},500)}

@@ -28,9 +28,9 @@ En un proyecto propio de Google Cloud:
 4. Authorized JavaScript origins: https://TU_DOMINIO (sin ruta).
 5. Copiar Client ID y Client Secret directamente al proveedor Google en Supabase Authentication > Sign In / Providers. No subirlos a Git ni pegarlos en un chat. Para web, mantener la comprobación de nonce.
 6. En Supabase Authentication > URL Configuration, Site URL: https://TU_DOMINIO; Redirect URLs: https://TU_DOMINIO/auth/callback.
-7. Si Google sigue en Testing, agregar las dos cuentas administradoras y las cuentas reales de prueba como Test users. Para el uso de todas las bandas, pasar a Production según lo que permita Google para la configuración elegida.
+7. Si Google sigue en Testing, agregar las dos cuentas administradoras y las cuentas reales de prueba como Test users. Agregar también las cuentas de puerta que deban ingresar durante las pruebas.
 
-La autenticación implementada usa PKCE. El código temporal vuelve a /auth/callback; Supabase lo canjea por sesión y restaura la invitación o pantalla original. Login y callback nunca autorizan por sí solos un rol: las operaciones se vuelven a verificar en PostgreSQL. Los representantes activan una invitación de un solo usuario con su Google; las identidades de ChatGPT no se reutilizan como identidades Google.
+La autenticación implementada usa PKCE. El código temporal vuelve a /auth/callback; Supabase lo canjea por sesión y restaura la invitación o pantalla original. Login y callback nunca autorizan por sí solos un rol: las operaciones se vuelven a verificar en PostgreSQL. Google se usa para organización y puerta. Las bandas entran desde su enlace privado de panel.
 
 ## Instalar y modificar
 
@@ -57,7 +57,7 @@ Las variables de producción y desarrollo están configuradas en el proyecto Ver
 - supabase/schema.sql reproduce el esquema en un proyecto vacío; no volver a ejecutarlo sobre el esquema instalado.
 - supabase/admins.sql registra la lista privada de administradores.
 - RLS habilitado en las cuatro tablas de la app. Sin permisos directos para anon/authenticated: el acceso es mediante public.pena_api, una envoltura invoker de pena_private.handle.
-- La función interna SECURITY DEFINER tiene search_path vacío y una lista explícita de operaciones anónimas (init, public, ticket con token impredecible, tickets para solicitar). Las demás requieren identidad verificada, sesión vigente y rol pertinente. No ejecutar SQL que envíe el cliente ni tomar decisiones de user_metadata.
+- La función interna SECURITY DEFINER tiene search_path vacío y operaciones públicas de catálogo y compra, y operaciones de panel que validan la clave privada y se limitan al participante. Las operaciones de organización y puerta requieren identidad verificada, sesión vigente y el rol correspondiente. No ejecutar SQL que envíe el cliente ni tomar decisiones de user_metadata.
 - Las invitaciones y datos privados no salen por los endpoints públicos de bandas. Un enlace largo de una entrada permite al portador consultar esa entrada: tratarlo como privado.
 - La RPC reserva cupo/precio con bloqueo por clave de idempotencia y bloqueo de la banda. Índice único parcial en (band_id,slot) para los cupos activos. Valores 1–10 = ARS 7000; 11–20 = ARS 10000.
 - Confirmación e ingreso usan bloqueos/actualizaciones condicionales. Un ingreso repetido se rechaza.
@@ -65,18 +65,26 @@ Las variables de producción y desarrollo están configuradas en el proyecto Ver
 - Confirmar manualmente sin cobrar sigue siendo una invitación de la banda. La app no verifica bancos ni mueve dinero.
 - Auditoría privada de operaciones de administración, confirmación e ingreso.
 
+## Paneles de participantes
+
+En **Participantes → Compartir panel**, la organización puede copiar o renovar el enlace privado de cada banda, solista o grupo. Quien tiene ese enlace puede administrar la lista y los cobros del participante. Para publicar en redes, usar el enlace de compra o su QR desde el panel.
+
+- **Agregar invitado a la peña** pide nombre y apellido. Guarda un ingreso habilitado en puerta y ocupa un lugar del cupo del participante. Las cargas manuales no suman al importe de ventas.
+- **Generar enlace y QR** pide los datos de cobro si todavía faltan. El enlace público conserva la reserva, el pago coordinado con el encargado y la confirmación desde el panel.
+- **Puesta en marcha**. Hacer un respaldo, aplicar solo las migraciones pendientes y desplegar la app. La migración de paneles conserva las bandas y entradas y renueva las antiguas invitaciones de bandas. Probar un panel en el dominio final desde un celular sin sesión, verificar su invitado en la lista del evento y revisar el QR antes de enviar los enlaces de cada banda.
+
 ## Respaldo y recuperación
 
 En Configuración hay una descarga de respaldo JSON completo, además del CSV/lista de puerta. Guardarlo de forma privada: contiene asistentes, WhatsApp e invitaciones de administración. No subir datos de producción a GitHub.
 
-El respaldo JSON es una exportación de datos, no una copia de las cuentas de Google o sesiones de Supabase. Para restaurar en un proyecto nuevo: instalar esquema, registrar administradores, importar settings/bands/staff/tickets respetando IDs, volver a vincular usuarios por invitación y verificar conteos y estados. No restaurar sobre ventas nuevas sin reconciliar cambios. El historial de auditoría y de las identidades previas debe conservarse como legado, no transformarse en permisos de nuevos usuarios.
+El respaldo JSON es una exportación de datos, no una copia de las cuentas de Google o sesiones de Supabase. Para restaurar en un proyecto nuevo: instalar esquema, registrar administradores, importar settings/bands/staff/tickets respetando IDs, volver a vincular al equipo de puerta por invitación, verificar conteos y estados, y revisar los enlaces de panel antes de compartirlos. No restaurar sobre ventas nuevas sin reconciliar cambios. El historial de auditoría y de las identidades previas debe conservarse como legado, no transformarse en permisos de nuevos usuarios.
 
 No se configuró ni verificó un respaldo automático de pago. Verificar las opciones del plan en Supabase. Para puerta, descargar CSV e imprimir antes del evento. La app necesita internet y las pantallas se actualizan con Actualizar.
 
 ## Corte definitivo pendiente
 
 1. Habilitar Google en Supabase y sus URLs de retorno.
-2. Ingresar con ambos administradores y probar con una cuenta de banda y una de puerta reales.
+2. Ingresar con ambos administradores y probar un panel de banda sin sesión y una cuenta de puerta real.
 3. Resolver la protección de Vercel para que los compradores no necesiten cuenta de Vercel; su desactivación está pendiente de autorización explícita.
 4. Comparar de nuevo la fuente D1; coordinar cierre de ventas en el origen y sincronizar el delta para que no queden dos aplicaciones vendiendo.
 5. Conservar los enlaces viejos mediante redirección del origen al dominio nuevo, incluyendo path y query, después de confirmar que IDs y estados coinciden.
@@ -87,7 +95,7 @@ No borrar D1 ni el sitio anterior antes de validar el corte y el respaldo.
 
 ### Sponsors e identidad de El Anidal
 
-Esta revisión requiere aplicar en orden las migraciones de `supabase/migrations/` después del esquema base; en una base existente aplicar solamente las migraciones pendientes, nunca recrear `schema.sql`. Sponsors aparece en navegación de administración. Permite cargar/reemplazar un logo, ordenar y ocultar publicidad. Los representantes cargan su logo desde Mi participante. Las imágenes se guardan en el bucket público `pena-logos`, con escritura controlada por sesión y propietario. No hay variables nuevas.
+Esta revisión requiere aplicar en orden las migraciones de `supabase/migrations/` después del esquema base; en una base existente aplicar solamente las migraciones pendientes, nunca recrear `schema.sql`. Sponsors aparece en navegación de administración. Permite cargar/reemplazar un logo, ordenar y ocultar publicidad. La organización carga el logo desde Participantes → Ver entradas. Las imágenes se guardan en el bucket público `pena-logos`, con escritura reservada a la organización. No hay variables nuevas.
 
 El logo del participante aparece en compra, entrada y QR público. La descarga de la entrada consulta estado, logo y sponsors actuales; las imágenes ya descargadas no se actualizan retroactivamente. Los sponsors ocultos se excluyen de nuevas descargas. Si falla una imagen opcional, la entrada conserva nombre, datos y QR.
 

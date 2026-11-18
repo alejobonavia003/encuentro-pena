@@ -1,6 +1,6 @@
 # Dar de baja o eliminar participantes desde Supabase
 
-Proyecto existente: `encuentro-pena` (`utvcvzqxitopzxzhftuk`). La organización puede eliminar desde **Participantes → Eliminar participante**, después de aplicar la migración `20261117163041_delete_participants.sql`. La confirmación borra el participante y sus reservas pendientes o canceladas, e invalida su invitación y enlace de venta. Conserva la auditoría y los archivos de logos.
+Proyecto existente: `encuentro-pena` (`utvcvzqxitopzxzhftuk`). La organización puede eliminar desde **Participantes → Eliminar participante**, después de aplicar la migración `20261117163041_delete_participants.sql`. La confirmación borra el participante y sus reservas pendientes o canceladas, e invalida los enlaces de su panel y de compra. Conserva la auditoría y los archivos de logos.
 
 La app bloquea la eliminación si tiene entradas confirmadas o personas que ya ingresaron. Las confirmaciones se deben revisar y anular previamente; un ingreso ya registrado impide eliminarlo. Los representantes y el personal de puerta no tienen permiso para eliminar participantes.
 
@@ -58,7 +58,7 @@ returning id, name, active;
 rollback; -- Cambiar a commit únicamente después de verificar ID y nombre.
 ```
 
-Si el representante tiene otros participantes o un rol de puerta, esos accesos no cambian. El enlace público del participante dado de baja deja de aceptar compras. Su invitación anterior deja de funcionar. No eliminar la cuenta de `auth.users`: podría tener otras responsabilidades.
+Si el representante tiene otros participantes o un rol de puerta, esos accesos no cambian. El enlace público del participante dado de baja deja de aceptar compras. El enlace anterior a su panel deja de funcionar. No eliminar la cuenta de `auth.users`: podría tener otras responsabilidades.
 
 Para reactivarlo:
 
@@ -68,7 +68,7 @@ where id = 'ID_DEL_PARTICIPANTE'
 returning id, name, active;
 ```
 
-Después, copiar desde administración la **nueva** invitación privada y enviarla al representante. Reactivar no recupera automáticamente la asignación de la cuenta anterior.
+Después, copiar desde **Participantes → Compartir panel** el enlace privado nuevo y enviarlo al encargado.
 
 ## 3. Eliminar definitivamente un participante creado por error
 
@@ -97,4 +97,4 @@ Si no devuelve filas, no insistir con borrados en cascada: revisar el ID y las e
 
 Al borrar o dar de baja, no borrar imágenes automáticamente. Los PNG descargados anteriormente no se pueden retirar del celular del comprador y los logos históricos pueden seguir referenciados. Si realmente hace falta limpiar archivos huérfanos, hacerlo desde **Storage → pena-logos**, después de comprobar que ninguna fila de `public.bands.logo_path` ni de `public.sponsors.logo_path` usa esa ruta. No borrar filas directamente de `storage.objects`: usar el panel Storage para que también elimine el archivo físico.
 
-Comprobar después: el participante correcto quedó inactivo o eliminado; los demás permanecen iguales; las entradas confirmadas existentes siguen consultables y visibles en puerta; la invitación vieja no activa el acceso. No crear una venta ficticia para comprobar la baja.
+Comprobar después: el participante correcto quedó inactivo o eliminado; los demás permanecen iguales; las entradas confirmadas existentes siguen consultables y visibles en puerta; el enlace anterior del panel ya no abre. No crear una venta ficticia para comprobar la baja.
