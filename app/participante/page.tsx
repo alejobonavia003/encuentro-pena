@@ -2,7 +2,8 @@
 
 import {useEffect, useRef, useState, type FormEvent} from 'react';
 import {Brand} from '../brand';
-import {ParticipantLogo} from '../sponsors';
+import {ChevronDown} from 'lucide-react';
+import {EventSponsors,ParticipantLogo} from '../sponsors';
 import {QR} from '../sale-qr';
 import {saleUrl} from '../../lib/links';
 import {logoUrl,uploadLogo} from '../../lib/media';
@@ -143,7 +144,7 @@ export default function ParticipantPage() {
  const saleReady = !!(band.representative && band.alias && band.holder && whatsappUrl(band.phone));
  const purchaseLink = saleUrl(location.origin, band.id);
 
- return <div className="public">
+ return <div className="public event-photo">
   <header><Brand/></header>
   {error && <div className="toast error" role="alert">{error}</div>}
   {notice && <div className="toast" role="status">{notice}</div>}
@@ -152,8 +153,11 @@ export default function ParticipantPage() {
     <p className="eyebrow">{settings.title}</p>
     <h1>{band.name}</h1>
    </div>
-   <section className="panel">
-    <h2>Agregar invitado a la peña</h2>
+   <details className="panel guest-panel">
+    <summary>
+     <span>Agregar invitado a la peña</span>
+     <span className="guest-chevron"><ChevronDown size={22} strokeWidth={3} aria-hidden="true"/></span>
+    </summary>
     <p>Al guardarlo, aparecerá en la lista de puerta. {available} lugares disponibles.</p>
     <form onSubmit={addGuest}>
      <div className="twocol">
@@ -162,32 +166,9 @@ export default function ParticipantPage() {
      </div>
      <button disabled={busy || available === 0}>Agregar invitado</button>
     </form>
-   </section>
-   <ParticipantLogo participant={band} busy={busy} onLogo={async file => {
-    await uploadLogo(file, 'participants', band.id, location.hash.slice(1));
-    await refresh();
-    setNotice('Logo guardado.');
-   }}/>
+   </details>
    <section className="panel">
-    <span className="step-label">PASO 2</span>
-    <h2>Cargá tus datos bancarios</h2>
-    <p>Completá el representante, alias, titular y WhatsApp para empezar a vender.</p>
-    <p className="readiness">{saleReady ? '✓ Datos listos para vender' : 'Faltan datos para habilitar la venta'}</p>
-    {!paymentMode && <button className={saleReady ? 'secondary' : ''} onClick={() => setPaymentMode('edit')}>
-     {saleReady ? 'Editar mis datos de cobro' : 'Completar mis datos de cobro'}
-    </button>}
-    {paymentMode && <form onSubmit={savePayment} id="datos-de-cobro">
-     <label className="field"><span>Nombre del encargado</span><input name="representative" defaultValue={band.representative} maxLength={120} required/></label>
-     <label className="field"><span>Alias de transferencia</span><input name="alias" defaultValue={band.alias} maxLength={120} required/></label>
-     <label className="field"><span>Titular de la cuenta</span><input name="holder" defaultValue={band.holder} maxLength={120} required/></label>
-     <label className="field"><span>WhatsApp con código de área</span><input name="phone" type="tel" autoComplete="tel-national" placeholder="Ej. 358 4928722" defaultValue={band.phone} maxLength={40} required/></label>
-     <button disabled={busy}>{paymentMode === 'generate' ? 'Guardar datos y ver el QR' : 'Guardar datos de cobro'}</button>
-     <button type="button" className="secondary" disabled={busy} onClick={() => setPaymentMode(null)}>Cancelar</button>
-    </form>}
-   </section>
-   <section className="panel">
-    <span className="step-label">PASO 3</span>
-    <h2>Generá tu enlace de venta</h2>
+    <h2>O generá tu enlace de venta</h2>
     <p>Compartí siempre el mismo enlace público o su QR. Tus ventas quedan asociadas a tu participante.</p>
     {!showSale && <button onClick={() => {
      if (saleReady) setShowSale(true);
@@ -212,6 +193,29 @@ export default function ParticipantPage() {
      </div>
      <QR value={purchaseLink} logo={logoUrl(band.logo_path)}/>
     </>}
+   </section>
+   <EventSponsors/>
+   <ParticipantLogo participant={band} busy={busy} onLogo={async file => {
+    await uploadLogo(file, 'participants', band.id, location.hash.slice(1));
+    await refresh();
+    setNotice('Logo guardado.');
+   }}/>
+   <section className="panel">
+    <span className="step-label">PASO 2</span>
+    <h2>Cargá tus datos bancarios</h2>
+    <p>Completá el representante, alias, titular y WhatsApp para empezar a vender.</p>
+    <p className="readiness">{saleReady ? '✓ Datos listos para vender' : 'Faltan datos para habilitar la venta'}</p>
+    {!paymentMode && <button className={saleReady ? 'secondary' : ''} onClick={() => setPaymentMode('edit')}>
+     {saleReady ? 'Editar mis datos de cobro' : 'Completar mis datos de cobro'}
+    </button>}
+    {paymentMode && <form onSubmit={savePayment} id="datos-de-cobro">
+     <label className="field"><span>Nombre del encargado</span><input name="representative" defaultValue={band.representative} maxLength={120} required/></label>
+     <label className="field"><span>Alias de transferencia</span><input name="alias" defaultValue={band.alias} maxLength={120} required/></label>
+     <label className="field"><span>Titular de la cuenta</span><input name="holder" defaultValue={band.holder} maxLength={120} required/></label>
+     <label className="field"><span>WhatsApp con código de área</span><input name="phone" type="tel" autoComplete="tel-national" placeholder="Ej. 358 4928722" defaultValue={band.phone} maxLength={40} required/></label>
+     <button disabled={busy}>{paymentMode === 'generate' ? 'Guardar datos y ver el QR' : 'Guardar datos de cobro'}</button>
+     <button type="button" className="secondary" disabled={busy} onClick={() => setPaymentMode(null)}>Cancelar</button>
+    </form>}
    </section>
    <section className="pending-highlight">
     <span className="step-label">PASO 4</span>

@@ -24,6 +24,25 @@ export function SponsorStrip({sponsors=[]}:{sponsors?:Sponsor[]}){
   return <aside className="sponsors-strip" aria-label="Sponsors de la peña"><span className="eyebrow">NOS ACOMPAÑAN</span><h2>Quienes hacen nido.</h2><div className="sponsor-logos">{visible.map(s=><figure key={s.id}><SponsorLogo path={s.logo_path} alt={s.name} width="160" height="80" loading="lazy"/><figcaption>{s.name}</figcaption></figure>)}</div></aside>;
 }
 
+const eventSponsors = [
+  {name: 'Amatera', file: 'amatera-transparente.png'},
+  {name: 'Campo Bravo', file: 'campo-bravo.png'},
+  {name: 'La Aparcerada', file: 'la-aparcerada.png'},
+  {name: 'Los Marcheros', file: 'los-marcheros.png'},
+  {name: 'Los Tientos del Potro', file: 'los-tientos-del-potro.png'},
+];
+
+export function EventSponsors() {
+  return <aside className="sponsors-strip event-sponsors" aria-label="Sponsors de la peña">
+    <h2>Nos acompañan</h2>
+    <div className="sponsor-logos">
+      {eventSponsors.map(({name, file}) => <figure key={file}>
+        <img src={'/logos%20de%20sponsors/' + encodeURIComponent(file)} alt={name} width="96" height="96" loading="lazy"/>
+      </figure>)}
+    </div>
+  </aside>;
+}
+
 type Api=(path:string,body?:unknown)=>Promise<any>;
 export function SponsorManager({sponsors,onSave,busy}:{sponsors:Sponsor[];onSave:Api;busy:boolean}){
   const lock=useRef(false);
