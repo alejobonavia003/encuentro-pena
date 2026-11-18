@@ -61,7 +61,7 @@ try{
  ok((await call('redeem',{invite:inv},'other')).status===403,'Private invitation cannot be claimed twice');
  ok((await call('manage',{band:b},'rep')).status===403,'Representative cannot read another band');
  const sponsorId=crypto.randomUUID(),sponsorPath=`sponsors/${sponsorId}/${crypto.randomUUID()}.webp`;
- async function upload(path,as=null){await db.exec('begin');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(as?{sub:ids[as],session_id:ids[as]}:{})]);await db.exec('set local role '+(as?'authenticated':'anon'));await db.query("insert into storage.objects(bucket_id,name) values('pena-logos',$1)",[path]);await db.exec('commit');return true}catch(e){await db.exec('rollback');return false}}
+ async function upload(path,as=null,panelKey=null){await db.exec('begin');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(as?{sub:ids[as],session_id:ids[as]}:{})]);await db.query("select set_config('request.headers',$1,true)",[JSON.stringify(panelKey?{'x-pena-panel-key':panelKey}:{})]);await db.exec('set local role '+(as?'authenticated':'anon'));await db.query("insert into storage.objects(bucket_id,name) values('pena-logos',$1)",[path]);await db.exec('commit');return true}catch(e){await db.exec('rollback');return false}}
  const bandLogo=`participants/${a}/${crypto.randomUUID()}.webp`;
  ok(!await upload(bandLogo),'Anonymous upload blocked');
  ok(!await upload(bandLogo,'other'),'Unrelated identity cannot upload participant logo');
@@ -237,6 +237,13 @@ try{
  await call('rotate',{id:freshBand,event:event2},'admin');
  const renewed=(await call('bands_list',{event:event2},'admin')).bands.find(x=>x.id===freshBand);
  ok((await call('panel',{panelKey:freshKey})).status===404 && (await call('panel',{panelKey:renewed.invite})).tickets.length===19,'Link renewal revokes previous link and preserves entries');
+ await db.exec(readFileSync('supabase/migrations/20261118062514_panel_logo_upload.sql','utf8'));
+ const panelLogo=`participants/${freshBand}/${crypto.randomUUID()}.webp`;
+ ok(!await upload(panelLogo) && !await upload(panelLogo,null,freshKey), 'Missing and revoked panel keys cannot upload logos');
+ ok(!await upload(panelLogo,null,panelKey) && !await upload(sponsorPath,null,renewed.invite),'Panel upload is scoped to its participant folder');
+ ok(await upload(panelLogo,null,renewed.invite) && !await upload(panelLogo,null,renewed.invite),'Valid panel key can upload a new immutable logo');
+ ok((await call('panel_logo',{panelKey,logo_path:panelLogo})).status===400 && (await call('panel_logo',{panelKey:freshKey,logo_path:panelLogo})).status===404,'Other and revoked panels cannot attach the logo');
+ ok((await call('panel_logo',{panelKey:renewed.invite,logo_path:panelLogo})).ok && (await call('public',{band:freshBand})).band.logo_path===panelLogo,'Panel logo appears on the public purchase page');
  await db.query('delete from auth.sessions where user_id=$1',[ids.admin]);
  ok((await call('bands_create',{name:'No session'},'admin')).status===401,'Revoked session cannot perform privileged operations');
  ok(!await upload(`sponsors/${sponsorId}/${crypto.randomUUID()}.webp`,'admin'),'Revoked session cannot upload logos');

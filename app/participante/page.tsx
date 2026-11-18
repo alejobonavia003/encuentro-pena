@@ -2,9 +2,10 @@
 
 import {useEffect, useRef, useState, type FormEvent} from 'react';
 import {Brand} from '../brand';
+import {ParticipantLogo} from '../sponsors';
 import {QR} from '../sale-qr';
 import {saleUrl} from '../../lib/links';
-import {logoUrl} from '../../lib/media';
+import {logoUrl,uploadLogo} from '../../lib/media';
 import {whatsappUrl} from '../../lib/phone';
 
 type Entry = {
@@ -53,7 +54,7 @@ export default function ParticipantPage() {
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
  const [notice, setNotice] = useState('');
- const [showPayment, setShowPayment] = useState(false);
+ const [paymentMode, setPaymentMode] = useState<'edit' | 'generate' | null>(null);
  const [showSale, setShowSale] = useState(false);
  const lock = useRef(false);
  const guestRequest = useRef<{name: string; key: string} | null>(null);
@@ -111,8 +112,9 @@ export default function ParticipantPage() {
   void act(async () => {
    await panelRequest('panel_payment', fields);
    await refresh();
-   setShowPayment(false);
-   setShowSale(true);
+   setPaymentMode(null);
+   if (paymentMode === 'generate') setShowSale(true);
+   setNotice('Datos de cobro guardados.');
   });
  }
 
@@ -135,6 +137,8 @@ export default function ParticipantPage() {
  </main>;
 
  const {band, settings, tickets} = panel;
+ const pending = tickets.filter(entry => entry.status === 'pending');
+ const confirmed = tickets.filter(entry => entry.status === 'confirmed');
  const available = Math.max(0, band.capacity - tickets.length);
  const saleReady = !!(band.representative && band.alias && band.holder && whatsappUrl(band.phone));
  const purchaseLink = saleUrl(location.origin, band.id);
@@ -159,21 +163,40 @@ export default function ParticipantPage() {
      <button disabled={busy || available === 0}>Agregar invitado</button>
     </form>
    </section>
+   <ParticipantLogo participant={band} busy={busy} onLogo={async file => {
+    await uploadLogo(file, 'participants', band.id, location.hash.slice(1));
+    await refresh();
+    setNotice('Logo guardado.');
+   }}/>
    <section className="panel">
-    <h2>Enlace público de compra</h2>
-    <p>Compartí el enlace o el QR para que puedan reservar y pagar su entrada.</p>
-    {!showPayment && !showSale && <button onClick={() => saleReady ? setShowSale(true) : setShowPayment(true)}>
-     {saleReady ? 'Ver enlace y QR' : 'Generar enlace y QR'}
+    <span className="step-label">PASO 2</span>
+    <h2>Cargá tus datos bancarios</h2>
+    <p>Completá el representante, alias, titular y WhatsApp para empezar a vender.</p>
+    <p className="readiness">{saleReady ? '✓ Datos listos para vender' : 'Faltan datos para habilitar la venta'}</p>
+    {!paymentMode && <button className={saleReady ? 'secondary' : ''} onClick={() => setPaymentMode('edit')}>
+     {saleReady ? 'Editar mis datos de cobro' : 'Completar mis datos de cobro'}
     </button>}
-    {showPayment && <form onSubmit={savePayment}>
-     <h3>Datos de cobro</h3>
+    {paymentMode && <form onSubmit={savePayment} id="datos-de-cobro">
      <label className="field"><span>Nombre del encargado</span><input name="representative" defaultValue={band.representative} maxLength={120} required/></label>
      <label className="field"><span>Alias de transferencia</span><input name="alias" defaultValue={band.alias} maxLength={120} required/></label>
      <label className="field"><span>Titular de la cuenta</span><input name="holder" defaultValue={band.holder} maxLength={120} required/></label>
      <label className="field"><span>WhatsApp con código de área</span><input name="phone" type="tel" autoComplete="tel-national" placeholder="Ej. 358 4928722" defaultValue={band.phone} maxLength={40} required/></label>
-     <button disabled={busy}>Guardar datos y ver el QR</button>
+     <button disabled={busy}>{paymentMode === 'generate' ? 'Guardar datos y ver el QR' : 'Guardar datos de cobro'}</button>
+     <button type="button" className="secondary" disabled={busy} onClick={() => setPaymentMode(null)}>Cancelar</button>
     </form>}
-    {showSale && !showPayment && <>
+   </section>
+   <section className="panel">
+    <span className="step-label">PASO 3</span>
+    <h2>Generá tu enlace de venta</h2>
+    <p>Compartí siempre el mismo enlace público o su QR. Tus ventas quedan asociadas a tu participante.</p>
+    {!showSale && <button onClick={() => {
+     if (saleReady) setShowSale(true);
+     else {
+      setPaymentMode('generate');
+      requestAnimationFrame(() => document.querySelector<HTMLInputElement>('#datos-de-cobro input')?.focus());
+     }
+    }}>Generar mi enlace y QR</button>}
+    {showSale && <>
      {!settings.open && <p>La organización todavía tiene cerrada la venta en línea.</p>}
      <label className="field"><span>Enlace para compartir</span><input value={purchaseLink} readOnly onFocus={event => event.currentTarget.select()}/></label>
      <div className="actions">
@@ -186,30 +209,47 @@ export default function ParticipantPage() {
        }
       })} disabled={busy}>Copiar enlace</button>
       <a className="button secondary" href={purchaseLink} target="_blank" rel="noreferrer">Abrir página de compra</a>
-      <button className="secondary" onClick={() => setShowPayment(true)}>Editar datos de cobro</button>
      </div>
      <QR value={purchaseLink} logo={logoUrl(band.logo_path)}/>
     </>}
    </section>
-   <section className="panel">
+   <section className="pending-highlight">
+    <span className="step-label">PASO 4</span>
     <div className="sectionhead">
-     <h2>Invitados y compras</h2>
+     <h2>{pending.length ? `${pending.length} solicitudes pendientes` : 'Sin solicitudes pendientes'}</h2>
      <button className="secondary" disabled={busy} onClick={() => void act(refresh)}>Actualizar</button>
     </div>
+    <p>Cuando alguien te transfiera o te entregue el efectivo, revisá el cobro y elegí “Confirmar pago”. Su entrada aparecerá en la lista de puerta.</p>
+    <p className="notice">Confirmar sin cobrar equivale a regalar la entrada y es responsabilidad del representante.</p>
+    {pending.length > 0 && <ul className="participant-entries">
+     {pending.map(entry => <li key={entry.id}>
+      <strong>{entry.name}</strong>
+      <span>{entry.method === 'cash' ? 'Efectivo' : 'Transferencia'} · {money.format(entry.amount)}</span>
+      <div className="actions">
+       <button disabled={busy} onClick={() => updateEntry(entry, true)}>Confirmar pago</button>
+       <button className="secondary" disabled={busy} onClick={() => updateEntry(entry, false)}>Anular reserva</button>
+      </div>
+     </li>)}
+    </ul>}
+   </section>
+   <div className="stats participant-stats">
+    <div className="stat"><span>Confirmadas</span><strong>{confirmed.length}</strong><small>Habilitadas para ingresar</small></div>
+    <div className="stat"><span>Pendientes</span><strong>{pending.length}</strong><small>Revisá los pagos recibidos</small></div>
+    <div className="stat"><span>Valor confirmado</span><strong>{money.format(confirmed.reduce((total, entry) => total + entry.amount, 0))}</strong><small>100% para tu participante</small></div>
+    <div className="stat"><span>Cupo</span><strong>{available}/{band.capacity}</strong><small>Entradas disponibles</small></div>
+   </div>
+   <section className="panel">
+    <h2>Todas las entradas</h2>
     {tickets.length ? <ul className="participant-entries">
      {tickets.map(entry => {
-      const pending = entry.status === 'pending';
       const guest = entry.method === 'guest';
       const ticketLink = new URL('/?ticket=' + encodeURIComponent(entry.id), location.origin).href;
-      const sendEntry = !pending && !guest && whatsappUrl(entry.phone, 'Hola ' + entry.name + ', tu entrada está confirmada. Podés verla acá: ' + ticketLink);
+      const sendEntry = entry.status === 'confirmed' && !guest && whatsappUrl(entry.phone, 'Hola ' + entry.name + ', tu entrada está confirmada. Podés verla acá: ' + ticketLink);
       return <li key={entry.id}>
        <strong>{entry.name}</strong>
-       <span>{guest ? 'Invitado · En lista de puerta' : (pending ? 'Pago pendiente' : 'Pago confirmado') + ' · ' + money.format(entry.amount)}{entry.entered_at ? ' · Ya ingresó' : ''}</span>
-       <div className="actions">
-        {pending && <button disabled={busy} onClick={() => updateEntry(entry, true)}>Confirmar pago</button>}
-        {(pending || (guest && !entry.entered_at)) && <button className="secondary" disabled={busy} onClick={() => updateEntry(entry, false)}>{guest ? 'Quitar invitado' : 'Anular reserva'}</button>}
-        {sendEntry && <a className="button secondary" target="_blank" rel="noreferrer" href={sendEntry}>Enviar entrada por WhatsApp</a>}
-       </div>
+       <span>{guest ? 'Invitado · En lista de puerta' : (entry.status === 'pending' ? 'Pago pendiente' : 'Pago confirmado') + ' · ' + money.format(entry.amount)}{entry.entered_at ? ' · Ya ingresó' : ''}</span>
+       {guest && !entry.entered_at && <button className="secondary" disabled={busy} onClick={() => updateEntry(entry, false)}>Quitar invitado</button>}
+       {sendEntry && <a className="button secondary" target="_blank" rel="noreferrer" href={sendEntry}>Enviar entrada por WhatsApp</a>}
       </li>;
      })}
     </ul> : <p>Todavía no hay invitados ni compras.</p>}

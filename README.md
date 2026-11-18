@@ -70,7 +70,7 @@ Las variables de producción y desarrollo están configuradas en el proyecto Ver
 En **Participantes → Compartir panel**, la organización puede copiar o renovar el enlace privado de cada banda, solista o grupo. Quien tiene ese enlace puede administrar la lista y los cobros del participante. Para publicar en redes, usar el enlace de compra o su QR desde el panel.
 
 - **Agregar invitado a la peña** pide nombre y apellido. Guarda un ingreso habilitado en puerta y ocupa un lugar del cupo del participante. Las cargas manuales no suman al importe de ventas.
-- **Generar enlace y QR** pide los datos de cobro si todavía faltan. El enlace público conserva la reserva, el pago coordinado con el encargado y la confirmación desde el panel.
+- Después de la carga de invitados, el panel guía por cuatro pasos: logo, datos bancarios, enlace y QR, y confirmación de pagos. **Generar mi enlace y QR** pide los datos de cobro si todavía faltan. El enlace público conserva la reserva, el pago coordinado con el encargado y la confirmación desde el panel.
 - **Puesta en marcha**. Hacer un respaldo, aplicar solo las migraciones pendientes y desplegar la app. La migración de paneles conserva las bandas y entradas y renueva las antiguas invitaciones de bandas. Probar un panel en el dominio final desde un celular sin sesión, verificar su invitado en la lista del evento y revisar el QR antes de enviar los enlaces de cada banda.
 
 ## Respaldo y recuperación
@@ -95,7 +95,7 @@ No borrar D1 ni el sitio anterior antes de validar el corte y el respaldo.
 
 ### Sponsors e identidad de El Anidal
 
-Esta revisión requiere aplicar en orden las migraciones de `supabase/migrations/` después del esquema base; en una base existente aplicar solamente las migraciones pendientes, nunca recrear `schema.sql`. Sponsors aparece en navegación de administración. Permite cargar/reemplazar un logo, ordenar y ocultar publicidad. La organización carga el logo desde Participantes → Ver entradas. Las imágenes se guardan en el bucket público `pena-logos`, con escritura reservada a la organización. No hay variables nuevas.
+Esta revisión requiere aplicar en orden las migraciones de `supabase/migrations/` después del esquema base; en una base existente aplicar solamente las migraciones pendientes, nunca recrear `schema.sql`. Sponsors aparece en navegación de administración. Permite cargar/reemplazar un logo, ordenar y ocultar publicidad. La banda puede cargar su logo desde su panel. La organización también puede hacerlo desde Participantes → Ver entradas. Las imágenes se guardan en el bucket público `pena-logos`, con escritura limitada a la organización y al participante correspondiente. No hay variables nuevas.
 
 El logo del participante aparece en compra, entrada y QR público. La descarga de la entrada consulta estado, logo y sponsors actuales; las imágenes ya descargadas no se actualizan retroactivamente. Los sponsors ocultos se excluyen de nuevas descargas. Si falla una imagen opcional, la entrada conserva nombre, datos y QR.
 

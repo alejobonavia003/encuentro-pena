@@ -11,7 +11,9 @@ export function logoUrl(path?:string|null):string|undefined {
   return base ? `${base}/storage/v1/object/public/${LOGO_BUCKET}/${path}` : undefined;
 }
 
-export async function uploadLogo(file:File,folder:'participants'|'sponsors',id:string){
+export function uploadLogo(file:File,folder:'participants'|'sponsors',id:string):Promise<string>;
+export function uploadLogo(file:File,folder:'participants',id:string,panelKey:string):Promise<void>;
+export async function uploadLogo(file:File,folder:'participants'|'sponsors',id:string,panelKey?:string):Promise<string|void>{
   if(!['image/png','image/jpeg','image/webp'].includes(file.type))throw Error('Elegí un logo PNG, JPG o WebP.');
   if(file.size>5*1024*1024)throw Error('El archivo original debe pesar menos de 5 MB.');
   const bitmap=await createImageBitmap(file);
@@ -32,6 +34,15 @@ export async function uploadLogo(file:File,folder:'participants'|'sponsors',id:s
     }
     const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('No pudimos convertir el logo.')),'image/webp',0.9));
     if(blob.type!=='image/webp'||blob.size>1024*1024)throw Error('No pudimos reducir el logo a WebP de menos de 1 MB.');
+    if(panelKey){
+      const response=await fetch('/api/panel_logo',{
+        method:'POST',body:blob,
+        headers:{'Content-Type':'image/webp','X-Pena-Panel-Key':panelKey,'X-Pena-Participant':id},
+      });
+      const result=await response.json();
+      if(!response.ok)throw Error(result.error||'No pudimos subir el logo.');
+      return;
+    }
     const path=`${folder}/${id}/${crypto.randomUUID()}.webp`;
     const {error}=await browserSupabase().storage.from(LOGO_BUCKET).upload(path,blob,{contentType:'image/webp',cacheControl:'31536000',upsert:false});
     if(error)throw Error('No pudimos subir el logo. Revisá tu sesión y volvé a intentar.');

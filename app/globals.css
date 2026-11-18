@@ -71,3 +71,7 @@ th{background:#252d20;color:#d6cfb9;border-color:#454d39}td{border-color:#39422f
  .participant-panel .twocol { grid-template-columns: 1fr; }
  .participant-panel form > button { width: 100%; }
 }
+.participant-panel .pending-highlight { margin: 0; }
+.participant-panel .participant-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.participant-panel .participant-entries li > .button,
+.participant-panel .participant-entries li > button { justify-self: start; }
