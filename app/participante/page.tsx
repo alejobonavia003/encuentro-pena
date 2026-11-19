@@ -251,7 +251,7 @@ export default function ParticipantPage() {
       const sendEntry = entry.status === 'confirmed' && !guest && whatsappUrl(entry.phone, 'Hola ' + entry.name + ', tu entrada está confirmada. Podés verla acá: ' + ticketLink);
       return <li key={entry.id}>
        <strong>{entry.name}</strong>
-       <span>{guest ? 'Invitado · En lista de puerta' : (entry.status === 'pending' ? 'Pago pendiente' : 'Pago confirmado') + ' · ' + money.format(entry.amount)}{entry.entered_at ? ' · Ya ingresó' : ''}</span>
+       <span>{guest ? 'Invitado · En lista de puerta · ' + money.format(entry.amount) : (entry.status === 'pending' ? 'Pago pendiente' : 'Pago confirmado') + ' · ' + money.format(entry.amount)}{entry.entered_at ? ' · Ya ingresó' : ''}</span>
        {guest && !entry.entered_at && <button className="secondary" disabled={busy} onClick={() => updateEntry(entry, false)}>Quitar invitado</button>}
        {sendEntry && <a className="button secondary" target="_blank" rel="noreferrer" href={sendEntry}>Enviar entrada por WhatsApp</a>}
       </li>;

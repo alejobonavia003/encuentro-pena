@@ -220,8 +220,9 @@ try{
  ok(!(await call('public',{band:freshBand})).ready && (await call('panel_guest',{...guest,lastName:' '})).status===400,'Guest form requires both names, without requiring payment setup');
  const added=await call('panel_guest',guest);
  ok(added.id && (await call('panel_guest',guest)).id===added.id,'Guest registration is idempotent');
+ await db.exec(readFileSync('supabase/migrations/20261119234627_price_manual_guest_tickets.sql','utf8'));
  const addedGuest=(await call('panel',{panelKey:freshKey})).tickets[0];
- ok(addedGuest.name==='Ana María Pérez' && addedGuest.method==='guest' && addedGuest.amount===0 && addedGuest.phone==='' && addedGuest.status==='confirmed','Manual guest is confirmed with no phone or recorded revenue');
+ ok(addedGuest.name==='Ana María Pérez' && addedGuest.method==='guest' && addedGuest.amount===7000 && addedGuest.phone==='' && addedGuest.status==='confirmed','Existing manual guest gets its slot price and stays confirmed without a phone');
  ok((await call('door',{event:event2},'door')).tickets.some(t=>t.id===added.id) && !(await call('door',{},'door')).tickets.some(t=>t.id===added.id),'Guest appears only on the corresponding door list');
  ok((await call('public',{band:freshBand})).available===19 && (await call('ticket',{id:added.id})).status===404,'Manual guests consume a shared slot and stay off public ticket lookup');
  ok((await call('panel_cancel',{panelKey,id:added.id})).status===403 && (await call('panel_confirm',{...panelPayload,id:generalTickets[2],accept:true})).status===403,'Panel cannot cancel or confirm entries of another participant');
@@ -232,6 +233,8 @@ try{
  ok((await call('checkin',{event:event2,id:added.id},'door')).ok && (await call('panel_cancel',{panelKey:freshKey,id:added.id})).status===409,'Door can check in manual guests and checked-in guests cannot be removed');
  for(let i=0;i<18;i++) assert.ok((await call('panel_guest',{...guest,requestKey:crypto.randomUUID()})).ok);
  ok((await call('panel_guest',{...guest,requestKey:crypto.randomUUID()})).status===409 && (await call('tickets',reserve(freshBand))).status===409,'Manual guests and online purchases share one capacity');
+ const pricedGuests=(await call('panel',{panelKey:freshKey})).tickets.filter(t=>t.method==='guest');
+ ok(pricedGuests.filter(t=>t.amount===7000).length===9 && pricedGuests.filter(t=>t.amount===10000).length===10 && pricedGuests.reduce((sum,t)=>sum+t.amount,0)===163000,'Manual guests and online purchases share the same price tiers');
  const unenteredGuest=(await call('panel',{panelKey:freshKey})).tickets.find(t=>t.method==='guest'&&!t.entered_at);
  ok((await call('panel_cancel',{panelKey:freshKey,id:unenteredGuest.id})).ok && (await call('public',{band:freshBand})).available===1,'Removing an unchecked guest frees the slot');
  await call('rotate',{id:freshBand,event:event2},'admin');
