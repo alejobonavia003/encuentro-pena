@@ -100,6 +100,23 @@ th{background:#252d20;color:#d6cfb9;border-color:#454d39}td{border-color:#39422f
 .participant-panel .participant-entries li > button { justify-self: start; }
 
 
+.admin-photo {
+ isolation: isolate;
+}
+.admin-photo::before {
+ content: '';
+ position: fixed;
+ inset: 0;
+ z-index: -1;
+ pointer-events: none;
+ background:
+  linear-gradient(180deg, #11150dc9, #11150da6 45%, #11150de6),
+  url('/fondo-venta-entradas-bar-encuentro.webp') center / cover no-repeat;
+}
+@media print {
+ .admin-photo::before { display: none; }
+}
+
 .event-photo {
  min-height: 100vh;
  isolation: isolate;
